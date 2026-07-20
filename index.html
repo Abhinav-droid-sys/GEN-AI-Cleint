@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GenAI Client Intelligence</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        .api-banner {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .api-banner-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .api-banner-text a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .api-banner-text a:hover {
+            text-decoration: underline;
+        }
+        .api-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .api-input-group input {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-radius: 4px;
+            width: 250px;
+        }
+        .api-input-group button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .api-input-group button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Client Intelligence</h1>
+                <p>Mockup Dashboard</p>
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button id="header-disconnect-btn" class="hidden btn-undo" style="font-size: 0.75rem; color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 4px; text-decoration: none;">Disconnect API</button>
+                <div class="mode-toggle-container compact-toggle">
+                    <span class="mode-label active" id="label-mockup">Mockup</span>
+                    <label class="switch">
+                        <input type="checkbox" id="mode-toggle">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="mode-label" id="label-prototype">Prototype</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="api-setup-box hidden" id="api-setup-box">
+                <p style="font-weight: 500;">To use the live Prototype, please connect your Groq API Key.</p>
+                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: -8px;">Get one from <a href="https://console.groq.com/keys" target="_blank" style="color: #3b82f6;">Groq Console</a>.</p>
+                <div class="api-input-group">
+                    <input type="password" id="api-key-input" placeholder="Paste Groq API Key here...">
+                    <button id="save-api-key">Connect API</button>
+                </div>
+                <div id="api-loader" class="hidden" style="margin-top: 15px; justify-content: center; font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                    <div class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></div> Attaching API key to backend...
+                </div>
+                <p id="api-success-msg" class="hidden" style="color: #10b981; font-size: 0.95rem; margin-top: 15px; font-weight: 500;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> API successfully connected! Redirecting...
+                </p>
+            </div>
+
+            <section class="input-section" id="upload-section">
+                <h2>Analyze Conversation</h2>
+                <textarea id="chat-input" placeholder="Paste the client-coach conversation here..."></textarea>
+                
+                <div class="action-row">
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="file-upload" accept=".pdf,.docx,.xlsx" class="hidden-input">
+                        <label for="file-upload" class="btn-outline">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                            Upload Chat Document
+                        </label>
+                        <span id="file-name" class="file-name"></span>
+                    </div>
+                    <button id="analyze-btn">Generate Intelligence</button>
+                </div>
+                <div id="loader" class="hidden">
+                    <div class="spinner"></div>
+                    <span>Analyzing context...</span>
+                </div>
+            </section>
+
+            <section id="dashboard" class="hidden">
+                <div class="dashboard-header">
+                    <h2>Analysis Results</h2>
+                    <div class="legend">
+                        <span class="tag tag-confirmed" data-filter="tag-confirmed">Confirmed facts</span>
+                        <span class="tag tag-client" data-filter="tag-client">Client-reported</span>
+                        <span class="tag tag-inference" data-filter="tag-inference">AI Inference</span>
+                        <span class="tag tag-missing" data-filter="tag-missing">Missing Data</span>
+                    </div>
+                </div>
+
+                <div class="grid-container" id="results-grid">
+                    <!-- Cards will be injected here via JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Template for a single insight card -->
+    <template id="insight-card-template">
+        <div class="card" data-status="pending">
+            <div class="gradient-overlay"></div>
+            <div class="card-header" style="z-index: 2; position: relative;">
+                <h3 class="card-title"></h3>
+                <span class="card-tag"></span>
+            </div>
+            
+            <div class="card-content-wrapper" style="z-index: 2; position: relative; flex-grow: 1; display: flex; flex-direction: column;">
+                <div class="card-body">
+                    <p class="card-value"></p>
+                    <div class="evidence-box">
+                        <span class="card-evidence"></span>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-approve" title="Approve">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </button>
+                    <button class="btn btn-edit" title="Edit">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </button>
+                    <button class="btn btn-reject" title="Reject">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="feedback-box hidden" style="z-index: 2; position: relative;">
+                <p style="font-size: 0.85rem; font-weight: 500; margin-bottom: 0.5rem; color: #dc2626;">Provide requirements for AI regeneration:</p>
+                <textarea placeholder="E.g., Focus more on the client's sleep schedule..." class="feedback-input"></textarea>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-submit-feedback">Submit to AI</button>
+                    <button class="btn-cancel-feedback" style="background: transparent; border: 1px solid var(--border-color); cursor: pointer; border-radius: 4px; padding: 0.5rem 1rem;">Cancel</button>
+                </div>
+                <div class="feedback-loader hidden" style="margin-top: 10px; font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                    <div class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></div> Regenerating card...
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <div id="toast-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
